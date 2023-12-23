@@ -18,4 +18,8 @@ const path = require('path');
 const app = express();
 
 
+app.get("/files",function(req,res){
+  
+})
+
 module.exports = app;
