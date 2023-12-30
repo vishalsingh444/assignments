@@ -32,21 +32,13 @@ router.post('/courses/:courseId', userMiddleware, async (req, res) => {
     const {username} = req.headers;
 
     // console.log(courseId);
-    const course = await Course.findOne({_id:courseId});
-    // console.log(course);
-    const user = await User.findOne({username:username});
-
-    const purchasedCourseId = user.purchasedCourses.find(purchasedCourse => purchasedCourse._id.toString()===courseId);
-
-    if(purchasedCourseId){
-        res.json({
-            message:"Already purchased"
-        });
-        return;
-    }
-
-    user.purchasedCourses.push(course);
-    await user.save();
+    await User.updateOne({
+        username: username
+    },{
+        "push":{
+            purchasedCourses: courseId
+        }
+    });
 
     res.status(200).json({message:"Course purchased successfully"});
 });
@@ -55,10 +47,16 @@ router.get('/purchasedCourses', userMiddleware, async (req, res) => {
     // Implement fetching purchased courses logic
     const {username} = req.headers;
     const user = await User.findOne({username:username});
-    const {purchasedCourses} = await user.populate("purchasedCourses");
+    // const {purchasedCourses} = await user.populate("purchasedCourses");
+
+    const courses = await Course.find({
+        _id: {
+            "$in": user.purchasedCourses
+        }
+    });
 
     res.json({
-        purchasedCourses
+        courses
     });
 });
 

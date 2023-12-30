@@ -2,27 +2,20 @@ const { Router } = require("express");
 const router = Router();
 const userMiddleware = require("../middleware/user");
 const {User,Course} = require("../db");
-const jwtpassword = "100xdev";
+const { JWT_SECRET } = require("../config");
+const jwt = require("jsonwebtoken");
+
 // User Routes
 router.post('/signup', async (req, res) => {
     // Implement user signup logic
-    const {username,password} = req.body;
+    const { username, password } = req.body;
 
-    const existingUser = await User.findOne({username,password});
-
-    if(existingUser){
-        return res.status(404).json({
-            message: 'Username already exists'
-        })
-    }
-
-    await User.create(
-        username,
-        password
-    );
-
-    res.status(200).json({
-        message:'User created successfully'
+    await User.create({
+        username: username,
+        password: password,
+    });
+    res.json({
+        message: "User created successfully",
     });
 });
 
@@ -38,7 +31,7 @@ router.post('/signin', async (req, res) => {
         })
     }
 
-    const token = jwt.sign({username,password},jwtpassword);
+    const token = jwt.sign({username},JWT_SECRET);
 
     res.status(200).json({
         token
@@ -57,7 +50,7 @@ router.post('/courses/:courseId', userMiddleware, async (req, res) => {
     // Implement course purchase logic
     const courseId = req.params.courseId;
 
-    const {username} = req.headers;
+    const {username} = req;
 
     const course = await Course.exists({_id:courseId});
     const user = await User.findOne({username});
@@ -80,14 +73,18 @@ router.post('/courses/:courseId', userMiddleware, async (req, res) => {
 
 router.get('/purchasedCourses', userMiddleware, async (req, res) => {
     // Implement fetching purchased courses logic
-    const {username} = req.headers;
+    const {username} = req;
 
     const user = await User.findOne({username});
 
-    const {purchasedCourses} = await user.populate("purchasedCourses");
+    const courses = await Course.find({
+        _id: {
+            "$in": user.purchasedCourses
+        }
+    });
 
     res.json({
-        purchasedCourses
+        courses
     });
 });
 
